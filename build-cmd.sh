@@ -140,14 +140,16 @@ pushd "$ZLIB_SOURCE_DIR"
             #
             unset DISTCC_HOSTS CC CXX CFLAGS CPPFLAGS CXXFLAGS
 
-            # Prefer gcc-4.6 if available.
-            if [[ -x /usr/bin/gcc-4.6 && -x /usr/bin/g++-4.6 ]]; then
-                export CC=/usr/bin/gcc-4.6
-                export CXX=/usr/bin/g++-4.6
-            fi
-
             # Default target per autobuild build --address-size
-            opts="${TARGET_OPTS:--m$AUTOBUILD_ADDRSIZE $LL_BUILD_RELEASE}"
+            opts="${TARGET_OPTS:--m$AUTOBUILD_ADDRSIZE}"
+			DEBUG_COMMON_FLAGS="$opts -Og -g -fPIC -DPIC"
+			RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC --stack-protector-strong -D_FORTIFY_SOURCE=2"
+			DEBUG_CLFAGS="$DEBUG_COMMON_FLAGS"
+			RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
+            DEBUG_CXXLFAGS="$DEBUG_COMMON_FLAGS -std=c++17"
+			RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
+            DEBUG_CPPLFAGS="-DPIC"
+			RELEASE_CPPFLAGS="-DPIC"
 
             # Handle any deliberate platform targeting
             if [ ! "${TARGET_CPPFLAGS:-}" ]; then
@@ -158,11 +160,11 @@ pushd "$ZLIB_SOURCE_DIR"
                 export CPPFLAGS="$TARGET_CPPFLAGS"
             fi
 
-            # Release
-            CFLAGS="$opts" CXXFLAGS="$opts" \
-                ./configure --prefix="$stage" --includedir="$stage/include/zlib" --libdir="$stage/lib/release"
+            # Debug first
+            CFLAGS="$DEBUG_CLFAGS" CXXFLAGS="$DEBUG_CXXLFAGS" CPPFLAGS="$DEBUG_CPPLFAGS" \
+                ./configure --prefix="\${AUTOBUILD_PACKAGES_DIR}" --includedir="\${prefix}/include/zlib" --libdir="\${prefix}/lib/debug"
             make
-            make install
+            make install DESTDIR="$stage"
 
             # conditionally run unit tests
             if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
@@ -171,7 +173,34 @@ pushd "$ZLIB_SOURCE_DIR"
 
             # minizip
             pushd contrib/minizip
-                CFLAGS="$opts" make -f Makefile.Linden all
+                CFLAGS="$DEBUG_CLFAGS" CXXFLAGS="$DEBUG_CXXLFAGS" CPPFLAGS="$DEBUG_CPPLFAGS" \
+                    make -f Makefile.Linden all
+                cp -a libminizip.a "$stage"/lib/debug/
+                # conditionally run unit tests
+                if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                    make -f Makefile.Linden test
+                fi
+                make -f Makefile.Linden clean
+            popd
+
+            # clean the build artifacts
+            make distclean
+
+            # Release last
+            CFLAGS="$RELEASE_CFLAGS" CXXFLAGS="$RELEASE_CXXFLAGS" CPPFLAGS="$RELEASE_CPPFLAGS" \
+                ./configure --prefix="\${AUTOBUILD_PACKAGES_DIR}" --includedir="\${prefix}/include/zlib" --libdir="\${prefix}/lib/release"
+            make
+            make install DESTDIR="$stage"
+
+            # conditionally run unit tests
+            if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                make test
+            fi
+
+            # minizip
+            pushd contrib/minizip
+                CFLAGS="$RELEASE_CFLAGS" CXXFLAGS="$RELEASE_CXXFLAGS" CPPFLAGS="$RELEASE_CPPFLAGS" \
+                    make -f Makefile.Linden all
                 cp -a libminizip.a "$stage"/lib/release/
                 # conditionally run unit tests
                 if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
