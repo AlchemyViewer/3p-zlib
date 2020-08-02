@@ -143,7 +143,7 @@ pushd "$ZLIB_SOURCE_DIR"
             # Default target per autobuild build --address-size
             opts="${TARGET_OPTS:--m$AUTOBUILD_ADDRSIZE}"
 			DEBUG_COMMON_FLAGS="$opts -Og -g -fPIC -DPIC"
-			RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC --stack-protector-strong -D_FORTIFY_SOURCE=2"
+			RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2"
 			DEBUG_CLFAGS="$DEBUG_COMMON_FLAGS"
 			RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
             DEBUG_CXXLFAGS="$DEBUG_COMMON_FLAGS -std=c++17"
