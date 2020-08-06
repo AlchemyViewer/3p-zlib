@@ -144,15 +144,15 @@ pushd "$ZLIB_SOURCE_DIR"
             opts="${TARGET_OPTS:--m$AUTOBUILD_ADDRSIZE}"
 			DEBUG_COMMON_FLAGS="$opts -Og -g -fPIC -DPIC"
 			RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2"
-			DEBUG_CLFAGS="$DEBUG_COMMON_FLAGS"
+			DEBUG_CFLAGS="$DEBUG_COMMON_FLAGS"
 			RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
-            DEBUG_CXXLFAGS="$DEBUG_COMMON_FLAGS -std=c++17"
+            DEBUG_CXXFLAGS="$DEBUG_COMMON_FLAGS -std=c++17"
 			RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
-            DEBUG_CPPLFAGS="-DPIC"
+            DEBUG_CPPFLAGS="-DPIC"
 			RELEASE_CPPFLAGS="-DPIC"
 
             # Handle any deliberate platform targeting
-            if [ ! "${TARGET_CPPFLAGS:-}" ]; then
+            if [ -z "${TARGET_CPPFLAGS:-}" ]; then
                 # Remove sysroot contamination from build environment
                 unset CPPFLAGS
             else
@@ -160,8 +160,17 @@ pushd "$ZLIB_SOURCE_DIR"
                 export CPPFLAGS="$TARGET_CPPFLAGS"
             fi
 
+            # Fix up path for pkgconfig
+            if [ -d "$stage/packages/lib/release/pkgconfig" ]; then
+                fix_pkgconfig_prefix "$stage/packages"
+            fi
+
+            OLD_PKG_CONFIG_PATH="${PKG_CONFIG_PATH:-}"
+
             # Debug first
-            CFLAGS="$DEBUG_CLFAGS" CXXFLAGS="$DEBUG_CXXLFAGS" CPPFLAGS="$DEBUG_CPPLFAGS" \
+            export PKG_CONFIG_PATH="$stage/packages/lib/debug/pkgconfig:${OLD_PKG_CONFIG_PATH}"
+
+            CFLAGS="$DEBUG_CFLAGS" CXXFLAGS="$DEBUG_CXXFLAGS" CPPFLAGS="$DEBUG_CPPFLAGS" \
                 ./configure --prefix="\${AUTOBUILD_PACKAGES_DIR}" --includedir="\${prefix}/include/zlib" --libdir="\${prefix}/lib/debug"
             make
             make install DESTDIR="$stage"
@@ -173,7 +182,7 @@ pushd "$ZLIB_SOURCE_DIR"
 
             # minizip
             pushd contrib/minizip
-                CFLAGS="$DEBUG_CLFAGS" CXXFLAGS="$DEBUG_CXXLFAGS" CPPFLAGS="$DEBUG_CPPLFAGS" \
+                CFLAGS="$DEBUG_CFLAGS" CXXFLAGS="$DEBUG_CXXFLAGS" CPPFLAGS="$DEBUG_CPPFLAGS" \
                     make -f Makefile.Linden all
                 cp -a libminizip.a "$stage"/lib/debug/
                 # conditionally run unit tests
@@ -187,6 +196,8 @@ pushd "$ZLIB_SOURCE_DIR"
             make distclean
 
             # Release last
+            export PKG_CONFIG_PATH="$stage/packages/lib/release/pkgconfig:${OLD_PKG_CONFIG_PATH}"
+
             CFLAGS="$RELEASE_CFLAGS" CXXFLAGS="$RELEASE_CXXFLAGS" CPPFLAGS="$RELEASE_CPPFLAGS" \
                 ./configure --prefix="\${AUTOBUILD_PACKAGES_DIR}" --includedir="\${prefix}/include/zlib" --libdir="\${prefix}/lib/release"
             make

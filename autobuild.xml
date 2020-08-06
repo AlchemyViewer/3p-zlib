@@ -91,8 +91,10 @@
           </map>
           <key>manifest</key>
           <array>
-            <string>lib/release/libz.a</string>
-            <string>lib/release/libminizip.a</string>
+            <string>lib/debug/*.a</string>
+            <string>lib/debug/pkgconfig/*</string>
+            <string>lib/release/*.a</string>
+            <string>lib/release/pkgconfig/*</string>
           </array>
           <key>name</key>
           <string>linux</string>
