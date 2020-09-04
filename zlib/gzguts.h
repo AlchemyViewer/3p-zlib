@@ -54,7 +54,7 @@
 #  define NO_GZCOMPRESS
 #endif
 
-#if defined(STDC99) || (defined(__TURBOC__) && __TURBOC__ >= 0x550)
+#if defined(STDC99) || (defined(__TURBOC__) && __TURBOC__ >= 0x550) || (defined(_MSC_VER) && _MSC_VER >= 1900)
 #  ifndef HAVE_VSNPRINTF
 #    define HAVE_VSNPRINTF
 #  endif
