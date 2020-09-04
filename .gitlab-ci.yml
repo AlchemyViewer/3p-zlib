@@ -3,6 +3,7 @@ stages:
   - deploy
 
 variables:
+  AUTOBUILD_PACKAGE_DIR: zlib
   AUTOBUILD_PACKAGE_NAME: zlib
   AUTOBUILD_BUILD_ID: $CI_PIPELINE_ID
 
@@ -14,6 +15,7 @@ build:windows:
   before_script:
     - pipenv install
   script:
+    - pipenv run autobuild install -A32
     - pipenv run autobuild build -A32
     - pipenv run autobuild package -A32
   artifacts:
@@ -28,6 +30,7 @@ build:windows64:
   before_script:
     - pipenv install
   script:
+    - pipenv run autobuild install -A64
     - pipenv run autobuild build -A64
     - pipenv run autobuild package -A64
   artifacts:
@@ -41,6 +44,6 @@ deploy:nexus:
     - windows
   script:
     - $FileNameWin32 = Get-ChildItem -Path . -Name -Include ${env:AUTOBUILD_PACKAGE_NAME}-*-windows-${env:AUTOBUILD_BUILD_ID}*.tar.bz2
-    - curl.exe -v --user "${env:AUTOBUILD_HTTP_USER}:${env:AUTOBUILD_HTTP_PASS}" --upload-file .\$FileNameWin32 "https://pkg.alchemyviewer.org/repository/autobuild-external/${env:AUTOBUILD_PACKAGE_NAME}/windows/${FileNameWin32}"
+    - curl.exe -v --user "${env:AUTOBUILD_HTTP_USER}:${env:AUTOBUILD_HTTP_PASS}" --upload-file .\$FileNameWin32 "https://pkg.alchemyviewer.org/repository/autobuild-external/${env:AUTOBUILD_PACKAGE_DIR}/windows/${FileNameWin32}"
     - $FileNameWin64 = Get-ChildItem -Path . -Name -Include ${env:AUTOBUILD_PACKAGE_NAME}-*-windows64-${env:AUTOBUILD_BUILD_ID}*.tar.bz2
-    - curl.exe -v --user "${env:AUTOBUILD_HTTP_USER}:${env:AUTOBUILD_HTTP_PASS}" --upload-file .\$FileNameWin64 "https://pkg.alchemyviewer.org/repository/autobuild-external/${env:AUTOBUILD_PACKAGE_NAME}/windows64/${FileNameWin64}"
+    - curl.exe -v --user "${env:AUTOBUILD_HTTP_USER}:${env:AUTOBUILD_HTTP_PASS}" --upload-file .\$FileNameWin64 "https://pkg.alchemyviewer.org/repository/autobuild-external/${env:AUTOBUILD_PACKAGE_DIR}/windows64/${FileNameWin64}"
