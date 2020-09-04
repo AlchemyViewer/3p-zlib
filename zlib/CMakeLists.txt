@@ -188,6 +188,13 @@ add_library(zlibstatic STATIC ${ZLIB_SRCS} ${ZLIB_ASMS} ${ZLIB_PUBLIC_HDRS} ${ZL
 set_target_properties(zlib PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
 set_target_properties(zlib PROPERTIES SOVERSION 1)
 
+if(MSVC)
+    target_compile_options(zlib PRIVATE "/Zi")
+    set_target_properties (zlib PROPERTIES LINK_FLAGS "/DEBUG:FULL")
+    target_compile_options(zlibstatic PRIVATE "/Z7")
+    set_target_properties (zlibstatic PROPERTIES LINK_FLAGS "/DEBUG:FULL")
+endif()
+
 if(NOT CYGWIN)
     # This property causes shared libraries on Linux to have the full version
     # encoded into their final filename.  We disable this on Cygwin because
@@ -234,6 +241,10 @@ add_executable(example test/example.c)
 target_link_libraries(example zlib)
 add_test(example example)
 
+add_executable(example_static test/example.c)
+target_link_libraries(example_static zlibstatic)
+add_test(example_static example_static)
+
 add_executable(minigzip test/minigzip.c)
 target_link_libraries(minigzip zlib)
 
@@ -247,3 +258,31 @@ if(HAVE_OFF64_T)
     target_link_libraries(minigzip64 zlib)
     set_target_properties(minigzip64 PROPERTIES COMPILE_FLAGS "-D_FILE_OFFSET_BITS=64")
 endif()
+
+#============================================================================
+# SL minizip build binaries
+#============================================================================
+
+set(MINIZIP_HDRS
+    contrib/minizip/crypt.h
+	contrib/minizip/ioapi.h
+	contrib/minizip/unzip.h
+	contrib/minizip/zip.h
+)
+set(MINIZIP_SRCS
+    contrib/minizip/ioapi.c
+	contrib/minizip/unzip.c
+	contrib/minizip/zip.c
+)
+
+if(WIN32)
+  list(APPEND MINIZIP_HDRS contrib/minizip/iowin32.h)
+  list(APPEND MINIZIP_SRCS contrib/minizip/iowin32.c)
+endif()
+
+add_library(minizip STATIC ${MINIZIP_HDRS} ${MINIZIP_SRCS})
+target_link_libraries(minizip zlibstatic)
+if(MSVC)
+    target_compile_options(minizip PRIVATE "/Z7")
+endif()
+

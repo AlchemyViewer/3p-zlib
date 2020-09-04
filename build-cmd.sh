@@ -38,36 +38,35 @@ pushd "$ZLIB_SOURCE_DIR"
         # ------------------------ windows, windows64 ------------------------
         windows*)
             load_vsvars
-
-            # This invokes cmake only to convert zconf.h.cmakein to zconf.h.
-            # Without this step, multiple compiles fail for lack of zconf.h.
-            cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" . -DASM686=NO -DAMD64=NO
-
-            build_sln "contrib/vstudio/vc12/zlibvc.sln" "ReleaseWithoutAsm|$AUTOBUILD_WIN_VSPLATFORM" "zlibstat"
-
-            if [ "$AUTOBUILD_ADDRSIZE" = 32 ]
-            then bitdir=x86
-            else bitdir=x64
-            fi
-
-            # conditionally run unit tests
-            if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
-                build_sln "contrib/vstudio/vc12/zlibvc.sln" "ReleaseWithoutAsm|$AUTOBUILD_WIN_VSPLATFORM" "testzlib"
-                ./contrib/vstudio/vc12/$bitdir/TestZlibReleaseWithoutAsm/testzlib.exe README
-            fi
-
-            # mkdir -p "$stage/lib/debug"
-            mkdir -p "$stage/lib/release"
-            cp -a "contrib/vstudio/vc12/$bitdir/ZlibStatReleaseWithoutAsm/zlibstat.lib" \
-                "$stage/lib/release/zlib.lib"
             mkdir -p "$stage/include/zlib"
-            cp -a zlib.h zconf.h "$stage/include/zlib"
+            mkdir -p "$stage/lib/debug"
+            mkdir -p "$stage/lib/release"
 
-            # minizip
-            pushd contrib/minizip
-                nmake /f Makefile.Linden.Win32.mak
-                cp -a minizip.lib "$stage"/lib/release/
+            mkdir -p "build"
+            pushd "build"
+                # Invoke cmake and use as official build
+                cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" -A "$AUTOBUILD_WIN_VSPLATFORM" -T host="$AUTOBUILD_WIN_VSHOST" ..
+
+                cmake --build . --config Debug --clean-first
+                cmake --build . --config Release --clean-first
+
+                # conditionally run unit tests
+                if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                    ctest -C Debug
+                    ctest -C Release
+                fi
+
+                cp -a "Debug/zlibstaticd.lib" \
+                    "$stage/lib/debug/zlibd.lib"
+                cp -a "Debug/minizipd.lib" \
+                    "$stage/lib/debug/minizip.lib"
+                cp -a "Release/zlibstatic.lib" \
+                    "$stage/lib/release/zlib.lib"
+                cp -a "Release/minizip.lib" \
+                    "$stage/lib/release/minizip.lib"
+                cp -a zconf.h "$stage/include/zlib"
             popd
+            cp -a zlib.h "$stage/include/zlib"
         ;;
 
         # ------------------------- darwin, darwin64 -------------------------
