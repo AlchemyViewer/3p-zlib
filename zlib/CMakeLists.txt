@@ -280,9 +280,32 @@ if(WIN32)
   list(APPEND MINIZIP_SRCS contrib/minizip/iowin32.c)
 endif()
 
-add_library(minizip STATIC ${MINIZIP_HDRS} ${MINIZIP_SRCS})
-target_link_libraries(minizip zlibstatic)
+add_library(minizip SHARED ${MINIZIP_HDRS} ${MINIZIP_SRCS})
+add_library(minizipstatic STATIC ${MINIZIP_HDRS} ${MINIZIP_SRCS})
+
+set_target_properties(minizip PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+
+target_link_libraries(minizip zlib)
+target_link_libraries(minizipstatic zlibstatic)
 if(MSVC)
-    target_compile_options(minizip PRIVATE "/Z7")
+    target_compile_options(minizip PRIVATE "/Zi")
+    target_compile_definitions(minizip PRIVATE ZLIB_INTERNAL)
+    set_target_properties (minizip PROPERTIES LINK_FLAGS "/DEBUG:FULL")
+
+    target_compile_options(minizipstatic PRIVATE "/Z7")
+    set_target_properties (minizipstatic PROPERTIES LINK_FLAGS "/DEBUG:FULL")
 endif()
+
+
+add_executable(miniziputil contrib/minizip/minizip.c)
+set_target_properties(miniziputil PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+target_link_libraries(miniziputil minizip zlib)
+
+add_executable(miniunzutil contrib/minizip/miniunz.c)
+set_target_properties(miniunzutil PROPERTIES DEFINE_SYMBOL ZLIB_DLL)
+target_link_libraries(miniunzutil minizip zlib)
+
+
+
+
 
