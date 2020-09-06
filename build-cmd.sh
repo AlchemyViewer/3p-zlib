@@ -38,32 +38,63 @@ pushd "$ZLIB_SOURCE_DIR"
         # ------------------------ windows, windows64 ------------------------
         windows*)
             load_vsvars
+
+            if [ "$AUTOBUILD_ADDRSIZE" = 32 ]
+            then
+                archflags="/arch:SSE2"
+            else
+                archflags=""
+            fi
+
             mkdir -p "$stage/include/zlib"
             mkdir -p "$stage/lib/debug"
             mkdir -p "$stage/lib/release"
 
-            mkdir -p "build"
-            pushd "build"
+            mkdir -p "build_debug"
+            pushd "build_debug"
                 # Invoke cmake and use as official build
-                cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" -A "$AUTOBUILD_WIN_VSPLATFORM" -T host="$AUTOBUILD_WIN_VSHOST" ..
+                cmake -E env CFLAGS="$archflags" CXXFLAGS="$archflags" LDFLAGS="/DEBUG:FULL" \
+                cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" -A "$AUTOBUILD_WIN_VSPLATFORM" -T host="$AUTOBUILD_WIN_VSHOST" .. -DBUILD_SHARED_LIBS=ON
 
                 cmake --build . --config Debug --clean-first
-                cmake --build . --config Release --clean-first
 
                 # conditionally run unit tests
                 if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
                     ctest -C Debug
+                fi
+
+                cp -a "Debug/zlibd1.dll" "$stage/lib/debug/"
+                cp -a "Debug/zlibd.lib" "$stage/lib/debug/"
+                cp -a "Debug/zlibd.exp" "$stage/lib/debug/"
+                cp -a "Debug/zlibd.pdb" "$stage/lib/debug/"
+                cp -a "Debug/minizipd.dll" "$stage/lib/debug/"
+                cp -a "Debug/minizipd.lib" "$stage/lib/debug/"
+                cp -a "Debug/minizipd.exp" "$stage/lib/debug/"
+                cp -a "Debug/minizipd.pdb" "$stage/lib/debug/"
+                cp -a zconf.h "$stage/include/zlib"
+            popd
+
+            mkdir -p "build_release"
+            pushd "build_release"
+                # Invoke cmake and use as official build
+                cmake -E env CFLAGS="$archflags /Ob3 /GL /Zi" CXXFLAGS="$archflags /Ob3 /GL /Zi" LDFLAGS="/LTCG /OPT:REF /OPT:ICF /DEBUG:FULL" \
+                cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" -A "$AUTOBUILD_WIN_VSPLATFORM" -T host="$AUTOBUILD_WIN_VSHOST" .. -DBUILD_SHARED_LIBS=ON
+
+                cmake --build . --config Release --clean-first
+
+                # conditionally run unit tests
+                if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
                     ctest -C Release
                 fi
 
-                cp -a "Debug/zlibstaticd.lib" \
-                    "$stage/lib/debug/zlibd.lib"
-                cp -a "Debug/minizipd.lib" \
-                    "$stage/lib/debug/minizip.lib"
-                cp -a "Release/zlibstatic.lib" \
-                    "$stage/lib/release/zlib.lib"
-                cp -a "Release/minizip.lib" \
-                    "$stage/lib/release/minizip.lib"
+                cp -a "Release/zlib1.dll" "$stage/lib/release/"
+                cp -a "Release/zlib.lib" "$stage/lib/release/"
+                cp -a "Release/zlib.exp" "$stage/lib/release/"
+                cp -a "Release/zlib.pdb" "$stage/lib/release/"
+                cp -a "Release/minizip.dll" "$stage/lib/release/"
+                cp -a "Release/minizip.lib" "$stage/lib/release/"
+                cp -a "Release/minizip.exp" "$stage/lib/release/"
+                cp -a "Release/minizip.pdb" "$stage/lib/release/"
                 cp -a zconf.h "$stage/include/zlib"
             popd
             cp -a zlib.h "$stage/include/zlib"

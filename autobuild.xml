@@ -116,10 +116,8 @@
           </map>
           <key>manifest</key>
           <array>
-            <string>lib/debug/zlibd.lib</string>
-            <string>lib/debug/minizip.lib</string>
-            <string>lib/release/zlib.lib</string>
-            <string>lib/release/minizip.lib</string>
+            <string>lib/debug/*.*</string>
+            <string>lib/release/*.*</string>
           </array>
           <key>name</key>
           <string>windows</string>
