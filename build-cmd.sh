@@ -53,7 +53,7 @@ pushd "$ZLIB_SOURCE_DIR"
             mkdir -p "build_debug"
             pushd "build_debug"
                 # Invoke cmake and use as official build
-                cmake -E env CFLAGS="$archflags" CXXFLAGS="$archflags" LDFLAGS="/DEBUG:FULL" \
+                cmake -E env CFLAGS="$archflags" CXXFLAGS="$archflags /std:c++17 /permissive-" LDFLAGS="/DEBUG:FULL" \
                 cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" -A "$AUTOBUILD_WIN_VSPLATFORM" -T host="$AUTOBUILD_WIN_VSHOST" .. -DBUILD_SHARED_LIBS=ON
 
                 cmake --build . --config Debug --clean-first
@@ -77,7 +77,7 @@ pushd "$ZLIB_SOURCE_DIR"
             mkdir -p "build_release"
             pushd "build_release"
                 # Invoke cmake and use as official build
-                cmake -E env CFLAGS="$archflags /Ob3 /GL /Gy /Zi" CXXFLAGS="$archflags /Ob3 /GL /Gy /Zi" LDFLAGS="/LTCG /OPT:REF /OPT:ICF /DEBUG:FULL" \
+                cmake -E env CFLAGS="$archflags /Ob3 /GL /Gy /Zi" CXXFLAGS="$archflags /Ob3 /GL /Gy /Zi /std:c++17 /permissive-" LDFLAGS="/LTCG /OPT:REF /OPT:ICF /DEBUG:FULL" \
                 cmake -G "$AUTOBUILD_WIN_CMAKE_GEN" -A "$AUTOBUILD_WIN_VSPLATFORM" -T host="$AUTOBUILD_WIN_VSHOST" .. -DBUILD_SHARED_LIBS=ON
 
                 cmake --build . --config Release --clean-first
