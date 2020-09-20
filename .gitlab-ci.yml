@@ -43,12 +43,10 @@ build:linux64:
   tags:
     - linux
     - docker
-  before_script:
-    - pipenv install
   script:
-    - pipenv run autobuild install -A64
-    - pipenv run autobuild build -A64
-    - pipenv run autobuild package -A64
+    - autobuild install -A64
+    - autobuild build -A64
+    - autobuild package -A64
   artifacts:
     paths:
       - ${env:AUTOBUILD_PACKAGE_NAME}-*linux64*.tar.bz2
