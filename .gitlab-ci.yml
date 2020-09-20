@@ -49,7 +49,7 @@ build:linux64:
     - autobuild package -A64
   artifacts:
     paths:
-      - ${env:AUTOBUILD_PACKAGE_NAME}-*linux64*.tar.bz2
+      - $AUTOBUILD_PACKAGE_NAME-*linux64*.tar.bz2
 
 deploy:nexus:
   stage: deploy
