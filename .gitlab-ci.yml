@@ -56,6 +56,7 @@ deploy:nexus:
   tags:
     - autobuild
     - windows
+  when: manual
   script:
     - $FileNameLnx64 = Get-ChildItem -Path . -Name -Include ${env:AUTOBUILD_PACKAGE_NAME}-*-linux64-${env:AUTOBUILD_BUILD_ID}*.tar.bz2
     - curl.exe -v --user "${env:AUTOBUILD_HTTP_USER}:${env:AUTOBUILD_HTTP_PASS}" --upload-file .\$FileNameLnx64 "https://pkg.alchemyviewer.org/repository/autobuild-external/${env:AUTOBUILD_PACKAGE_DIR}/linux64/${FileNameLnx64}"
