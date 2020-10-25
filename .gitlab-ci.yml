@@ -13,11 +13,13 @@ build:windows:
     - autobuild
     - windows
   before_script:
-    - pipenv install
+    - virtualenv .venv
+    - .\venv\Scripts\activate.ps1
+    - pip install autobuild -i https://pkg.alchemyviewer.org/repository/autobuild/simple
   script:
-    - pipenv run autobuild install -A32
-    - pipenv run autobuild build -A32
-    - pipenv run autobuild package -A32
+    - autobuild install -A32
+    - autobuild build -A32
+    - autobuild package -A32
   artifacts:
     paths:
       - ${env:AUTOBUILD_PACKAGE_NAME}-*windows*.tar.bz2
@@ -28,11 +30,13 @@ build:windows64:
     - autobuild
     - windows
   before_script:
-    - pipenv install
+    - virtualenv .venv
+    - .\venv\Scripts\activate.ps1
+    - pip install autobuild -i https://pkg.alchemyviewer.org/repository/autobuild/simple
   script:
-    - pipenv run autobuild install -A64
-    - pipenv run autobuild build -A64
-    - pipenv run autobuild package -A64
+    - autobuild install -A64
+    - autobuild build -A64
+    - autobuild package -A64
   artifacts:
     paths:
       - ${env:AUTOBUILD_PACKAGE_NAME}-*windows64*.tar.bz2
