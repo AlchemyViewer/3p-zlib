@@ -14,7 +14,7 @@ build:windows:
     - windows
   before_script:
     - virtualenv .venv
-    - .\venv\Scripts\activate.ps1
+    - .\.venv\Scripts\activate.ps1
     - pip install autobuild -i https://pkg.alchemyviewer.org/repository/autobuild/simple
   script:
     - autobuild install -A32
@@ -31,7 +31,7 @@ build:windows64:
     - windows
   before_script:
     - virtualenv .venv
-    - .\venv\Scripts\activate.ps1
+    - .\.venv\Scripts\activate.ps1
     - pip install autobuild -i https://pkg.alchemyviewer.org/repository/autobuild/simple
   script:
     - autobuild install -A64
