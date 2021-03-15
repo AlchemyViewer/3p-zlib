@@ -67,9 +67,8 @@
           </map>
           <key>manifest</key>
           <array>
-            <string>lib/release/libz.a</string>
-            <string>lib/release/libz_darwin.exp</string>
-            <string>lib/release/libminizip.a</string>
+            <string>lib/debug/*.dylib*</string>
+            <string>lib/release/*.dylib*</string>
           </array>
           <key>name</key>
           <string>darwin</string>
