@@ -102,55 +102,116 @@ pushd "$ZLIB_SOURCE_DIR"
 
         # ------------------------- darwin, darwin64 -------------------------
         darwin*)
-            case "$AUTOBUILD_ADDRSIZE" in
-                32)
-                    cfg_sw=
-                    ;;
-                64)
-                    cfg_sw="--64"
-                    ;;
-            esac
+            # Setup osx sdk platform
+            SDKNAME="macosx11.1"
+            export SDKROOT=$(xcodebuild -version -sdk ${SDKNAME} Path)
+            export MACOSX_DEPLOYMENT_TARGET=10.13
 
-            # Install name for dylibs based on major version number
-            install_name="@executable_path/../Resources/libz.1.dylib"
+            # Setup build flags
+            ARCH_FLAGS="-arch x86_64"
+            SDK_FLAGS="-mmacosx-version-min=${MACOSX_DEPLOYMENT_TARGET} -isysroot ${SDKROOT}"
+            DEBUG_COMMON_FLAGS="$ARCH_FLAGS $SDK_FLAGS -Og -g -msse4.2 -fPIC -DPIC"
+            RELEASE_COMMON_FLAGS="$ARCH_FLAGS $SDK_FLAGS -Ofast -ffast-math -flto -g -msse4.2 -fPIC -DPIC -fstack-protector-strong"
+            DEBUG_CFLAGS="$DEBUG_COMMON_FLAGS"
+            RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
+            DEBUG_CXXFLAGS="$DEBUG_COMMON_FLAGS -std=c++17"
+            RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
+            DEBUG_CPPFLAGS="-DPIC"
+            RELEASE_CPPFLAGS="-DPIC"
+            DEBUG_LDFLAGS="$ARCH_FLAGS $SDK_FLAGS -Wl,-headerpad_max_install_names -Wl,-macos_version_min,$MACOSX_DEPLOYMENT_TARGET"
+            RELEASE_LDFLAGS="$ARCH_FLAGS $SDK_FLAGS -Wl,-headerpad_max_install_names -Wl,-macos_version_min,$MACOSX_DEPLOYMENT_TARGET"
 
-            cc_opts="${TARGET_OPTS:--arch $AUTOBUILD_CONFIGURE_ARCH $LL_BUILD_RELEASE}"
-            ld_opts="-Wl,-install_name,\"${install_name}\" -Wl,-headerpad_max_install_names"
-            export CC=clang
+            mkdir -p "$stage/include/zlib"
+            mkdir -p "$stage/lib/debug"
+            mkdir -p "$stage/lib/release"
 
-            # release
-            CFLAGS="$cc_opts" \
-            LDFLAGS="$ld_opts" \
-                ./configure $cfg_sw --prefix="$stage" --includedir="$stage/include/zlib" --libdir="$stage/lib/release"
-            make
-            make install
-            cp -a "$top"/libz_darwin_release.exp "$stage"/lib/release/libz_darwin.exp
+            mkdir -p "build_debug"
+            pushd "build_debug"
+                CFLAGS="$DEBUG_CFLAGS" \
+                CXXFLAGS="$DEBUG_CXXFLAGS" \
+                CPPFLAGS="$DEBUG_CPPFLAGS" \
+                LDFLAGS="$DEBUG_LDFLAGS" \
+                cmake .. -GXcode -DBUILD_SHARED_LIBS:BOOL=ON \
+                    -DCMAKE_C_FLAGS="$DEBUG_CFLAGS" \
+                    -DCMAKE_CXX_FLAGS="$DEBUG_CXXFLAGS" \
+                    -DCMAKE_XCODE_ATTRIBUTE_GCC_OPTIMIZATION_LEVEL="0" \
+                    -DCMAKE_XCODE_ATTRIBUTE_GCC_FAST_MATH=NO \
+                    -DCMAKE_XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS=YES \
+                    -DCMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+                    -DCMAKE_XCODE_ATTRIBUTE_LLVM_LTO=NO \
+                    -DCMAKE_XCODE_ATTRIBUTE_DEAD_CODE_STRIPPING=YES \
+                    -DCMAKE_XCODE_ATTRIBUTE_CLANG_X86_VECTOR_INSTRUCTIONS=sse4.2 \
+                    -DCMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD="c++17" \
+                    -DCMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY="libc++" \
+                    -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
+                    -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+                    -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
+                    -DCMAKE_OSX_SYSROOT=${SDKROOT} \
+                    -DCMAKE_MACOSX_RPATH=YES -DCMAKE_INSTALL_PREFIX=$stage
 
-            # conditionally run unit tests
-            if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
-                # Build a Resources directory as a peer to the test executable directory
-                # and fill it with symlinks to the dylibs.  This replicates the target
-                # environment of the viewer.
-                mkdir -p ../Resources
-                ln -sf "${stage}"/lib/release/*.dylib ../Resources
+                cmake --build . --config Debug
 
-                make test
-
-                # And wipe it
-                rm -rf ../Resources
-            fi
-
-            # minizip
-            pushd contrib/minizip
-                CFLAGS="$cc_opts" make -f Makefile.Linden all
-                cp -a libminizip.a "$stage"/lib/release/
+                # conditionally run unit tests
                 if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
-                    make -f Makefile.Linden test
+                    ctest -C Debug
                 fi
-                make -f Makefile.Linden clean
+
+                cp -a Debug/libz*.dylib* "${stage}/lib/debug/"
+                cp -a Debug/libminizip*.dylib* "${stage}/lib/debug/"
             popd
 
-            make distclean
+            mkdir -p "build_release"
+            pushd "build_release"
+                CFLAGS="$RELEASE_CFLAGS" \
+                CXXFLAGS="$RELEASE_CXXFLAGS" \
+                CPPFLAGS="$RELEASE_CPPFLAGS" \
+                LDFLAGS="$RELEASE_LDFLAGS" \
+                cmake .. -GXcode -DBUILD_SHARED_LIBS:BOOL=ON \
+                    -DCMAKE_C_FLAGS="$RELEASE_CFLAGS" \
+                    -DCMAKE_CXX_FLAGS="$RELEASE_CXXFLAGS" \
+                    -DCMAKE_XCODE_ATTRIBUTE_GCC_OPTIMIZATION_LEVEL="fast" \
+                    -DCMAKE_XCODE_ATTRIBUTE_GCC_FAST_MATH=YES \
+                    -DCMAKE_XCODE_ATTRIBUTE_GCC_GENERATE_DEBUGGING_SYMBOLS=YES \
+                    -DCMAKE_XCODE_ATTRIBUTE_DEBUG_INFORMATION_FORMAT=dwarf-with-dsym \
+                    -DCMAKE_XCODE_ATTRIBUTE_LLVM_LTO=YES \
+                    -DCMAKE_XCODE_ATTRIBUTE_DEAD_CODE_STRIPPING=YES \
+                    -DCMAKE_XCODE_ATTRIBUTE_CLANG_X86_VECTOR_INSTRUCTIONS=sse4.2 \
+                    -DCMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD="c++17" \
+                    -DCMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY="libc++" \
+                    -DCMAKE_XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY="" \
+                    -DCMAKE_OSX_ARCHITECTURES:STRING=x86_64 \
+                    -DCMAKE_OSX_DEPLOYMENT_TARGET=${MACOSX_DEPLOYMENT_TARGET} \
+                    -DCMAKE_OSX_SYSROOT=${SDKROOT} \
+                    -DCMAKE_MACOSX_RPATH=YES -DCMAKE_INSTALL_PREFIX=$stage
+
+                cmake --build . --config Release
+
+                # conditionally run unit tests
+                if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                    ctest -C Release
+                fi
+
+                cp -a Release/libz*.dylib* "${stage}/lib/release/"
+                cp -a Release/libminizip*.dylib* "${stage}/lib/release/"
+
+                cp -a zconf.h "$stage/include/zlib"
+            popd
+
+            pushd "${stage}/lib/debug"
+                fix_dylib_id "libz.dylib"
+                fix_dylib_id "libminizip.dylib"
+                strip -x -S libz.dylib
+                strip -x -S libminizip.dylib
+            popd
+
+            pushd "${stage}/lib/release"
+                fix_dylib_id "libz.dylib"
+                fix_dylib_id "libminizip.dylib"
+                strip -x -S libz.dylib
+                strip -x -S libminizip.dylib
+            popd
+
+            cp -a zlib.h "$stage/include/zlib"
         ;;            
 
         # -------------------------- linux, linux64 --------------------------
@@ -172,14 +233,14 @@ pushd "$ZLIB_SOURCE_DIR"
 
             # Default target per autobuild build --address-size
             opts="${TARGET_OPTS:--m$AUTOBUILD_ADDRSIZE}"
-			DEBUG_COMMON_FLAGS="$opts -Og -g -fPIC -DPIC"
-			RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2"
-			DEBUG_CFLAGS="$DEBUG_COMMON_FLAGS"
-			RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
+            DEBUG_COMMON_FLAGS="$opts -Og -g -fPIC -DPIC"
+            RELEASE_COMMON_FLAGS="$opts -O3 -g -fPIC -DPIC -fstack-protector-strong -D_FORTIFY_SOURCE=2"
+            DEBUG_CFLAGS="$DEBUG_COMMON_FLAGS"
+            RELEASE_CFLAGS="$RELEASE_COMMON_FLAGS"
             DEBUG_CXXFLAGS="$DEBUG_COMMON_FLAGS -std=c++17"
-			RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
+            RELEASE_CXXFLAGS="$RELEASE_COMMON_FLAGS -std=c++17"
             DEBUG_CPPFLAGS="-DPIC"
-			RELEASE_CPPFLAGS="-DPIC"
+            RELEASE_CPPFLAGS="-DPIC"
 
             # Handle any deliberate platform targeting
             if [ -z "${TARGET_CPPFLAGS:-}" ]; then
