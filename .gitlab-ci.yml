@@ -1,3 +1,10 @@
 include:
   - project: 'alchemy/infrastructure/gitlab-ci-config'
     file: '3p-library.yml'
+
+variables:
+  BUILD_COMMON: 0
+  BUILD_WINDOWS: 1
+  BUILD_WINDOWS64: 1
+  BUILD_LINUX64: 1
+  BUILD_MACOS: 1
