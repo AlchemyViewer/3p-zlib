@@ -29,7 +29,6 @@ source_environment_tempfile="$stage/source_environment.sh"
 
 VERSION_HEADER_FILE="$ZLIB_SOURCE_DIR/zlib.h"
 version=$(sed -n -E 's/#define ZLIB_VERSION "([0-9.]+)"/\1/p' "${VERSION_HEADER_FILE}")
-build=${AUTOBUILD_BUILD_ID:=0}
 echo "${version}" > "${stage}/VERSION.txt"
 
 pushd "$ZLIB_SOURCE_DIR"
@@ -103,7 +102,7 @@ pushd "$ZLIB_SOURCE_DIR"
         # ------------------------- darwin, darwin64 -------------------------
         darwin*)
             # Setup osx sdk platform
-            SDKNAME="macosx11.1"
+            SDKNAME="macosx"
             export SDKROOT=$(xcodebuild -version -sdk ${SDKNAME} Path)
             export MACOSX_DEPLOYMENT_TARGET=10.13
 
